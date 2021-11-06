@@ -246,12 +246,12 @@ val ID = LET ~ ("_" | LET | DIGIT).%
 // val NUM = PLUS(DIGIT)
 val KEYWORD : Rexp = "skip" | "while" | "do" | "if" | "then" | "else" | "read" | "write" | "for" | "to" | "true" | "false" 
 val SEMI: Rexp = ";"
-val OP: Rexp = ":=" | "-" | "+" | "*" | "!=" | "<" | ">" | "%" | "==" | "!=" | "<=" | ">=" | "&&" | "||"//"=" not allowed
+val OP: Rexp = ":=" | "-" | "+" | "*" | "!=" | "<" | ">" | "%" | "==" | "!=" | "<=" | ">=" | "&&" | "||" | "/"//"=" not allowed
 val WHITESPACE = PLUS(" " | "\n" | "\t" | "\r")
 // val RPAREN: Rexp = "{"
 // val LPAREN: Rexp = "}"
-val STRING: Rexp = "\"" ~ SYM.% ~ "\""
-val STRINGS: Rexp = "..." ~ (SYM | DIGIT | WHITESPACE).% ~ "..."
+// val STRING: Rexp = "\"" ~ SYM.% ~ "\""
+val STRINGS: Rexp = "\"" ~ (SYM | DIGIT | WHITESPACE).% ~ "\""
 val PARA: Rexp = "{" | "}" | "(" | ")"//may change
 
 val NUM: Rexp =  DIGIT | (RANGE("123456789") ~ DIGIT.% )
@@ -262,7 +262,7 @@ val WHILE_REGS = (("k" $ KEYWORD) |
                   ("o" $ OP) | 
                   ("n" $ NUM) | 
                   ("s" $ SEMI) | 
-                  ("str" $ STRING) |
+                  ("str" $ STRINGS) |
                   ("p" $ PARA) | 
                   ("c" $ COMMENT) | 
                   ("w" $ WHITESPACE)).%
@@ -378,10 +378,6 @@ def email() = {
   println(lexing_simp(EMAIL, "christian.urban@kcl.ac.uk"))
 }
 
-
-@arg(doc = "All tests.")
-@main
-def all() = { small(); fib() ; loops() ; email() } 
 val prog4 = """
 // Find all factors of a given input number
 
@@ -425,6 +421,16 @@ while bnd < 101 do {
 }
 """
 
+@arg(doc = "factors test")
+@main
+def factors() = {
+  println("lexing factors")
+  println(escape(lexing_simp(WHILE_REGS, prog4)).mkString("\n"))
+}
+
+@arg(doc = "All tests.")
+@main
+def all() = { small(); fib() ; loops() ; email() } 
 
 
 // runs with amm2 and amm3
