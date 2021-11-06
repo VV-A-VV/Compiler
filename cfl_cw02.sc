@@ -382,7 +382,48 @@ def email() = {
 @arg(doc = "All tests.")
 @main
 def all() = { small(); fib() ; loops() ; email() } 
+val prog4 = """
+// Find all factors of a given input number
 
+
+write "Input n please";
+read n;
+write "The factors of n are";
+f := 2;
+while (f < n / 2 + 1) do {
+  if ((n / f) * f == n) then  { write(f) } else { skip };
+  f := f + 1
+}
+"""
+val prog5 ="""
+// Collatz series
+//
+// needs writing of strings and numbers; comments
+
+bnd := 1;
+while bnd < 101 do {
+  write bnd;
+  write ": ";
+  n := bnd;
+  cnt := 0;
+
+  while n > 1 do {
+    write n;
+    write ",";
+    
+    if n % 2 == 0 
+    then n := n / 2 
+    else n := 3 * n+1;
+
+    cnt := cnt + 1
+  };
+
+  write " => ";
+  write cnt;
+  write "\n";
+  bnd := bnd + 1
+}
+"""
 
 
 
