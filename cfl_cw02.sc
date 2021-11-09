@@ -289,7 +289,7 @@ def q2() = {
 @main
 def small() = {
 
-  val prog0 = """read n"""
+  val prog0 = """read n;"""
   println(s"test: $prog0")
   println(lexing_simp(WHILE_REGS, prog0))
 
@@ -310,7 +310,7 @@ def esc(raw: String): String = {
 def escape(tks: List[(String, String)]) =
   tks.map{ case (s1, s2) => (s1, esc(s2))}
 
-
+val pq2 = "read n;"
 val prog2 = """
 write "Fib";
 read n;

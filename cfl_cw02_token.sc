@@ -42,6 +42,8 @@ def tokenise(s: String) : List[Token] =
 @arg(doc = "Tokens for fib and loops programs.")
 @main
 def main() = {
+  println("tokenize read n;")
+  println(tokenise(pq2))
   println("Fib program")
   println(tokenise(prog2))
   println("Loops program")
@@ -50,9 +52,9 @@ def main() = {
   println(tokenise(prog4))
   println("collatz program")
   println(tokenise(prog5))
-  for (i <- 0 to 20 by 5) {
-    println(f"$i%2.0f: ${time(tokenise(prog3 * i))._2}")
-  }
+  // for (i <- 0 to 20 by 5) {
+  //   println(f"$i%2.0f: ${time(tokenise(prog3 * i))._2}")
+  // }
 
 }
 
