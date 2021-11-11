@@ -3,25 +3,20 @@ abstract class Rexp
 case object ZERO extends Rexp
 case object ONE extends Rexp
 case object ALL extends Rexp
-// case class CHAR(c: Char) extends Rexp
 case class ALT(r1: Rexp, r2: Rexp) extends Rexp 
 case class SEQ(r1: Rexp, r2: Rexp) extends Rexp 
 case class STAR(r: Rexp) extends Rexp 
 case class NTIMES(r: Rexp, n: Int) extends Rexp 
 case class CFUN(f: Char => Boolean) extends Rexp 
-// case class RANGE(r: List[CHAR]) extends Rexp
 case class PLUS(r: Rexp) extends Rexp 
 case class OPTIONAL(r: Rexp) extends Rexp
-// case class UPTO(r: Rexp, m: Int) extends Rexp
-// case class FROM(r: Rexp, n: Int) extends Rexp
-// case class BETWEEN(r: Rexp, n: Int, m: Int) extends Rexp
-// case class NOT(r: Rexp) extends Rexp
 case class RECD(x: String, r: Rexp) extends Rexp  
+
+
 
 // values  
 abstract class Val
 case object Empty extends Val
-// case class Chr(c: Char) extends Val
 case class Sequ(v1: Val, v2: Val) extends Val
 case class Left(v: Val) extends Val
 case class Right(v: Val) extends Val
@@ -30,12 +25,11 @@ case class Pls(vs: List[Val]) extends Val
 case class Rec(x: String, v: Val) extends Val
 case class Cf(f: Char => Boolean) extends Val
 case class Opt(v: Val) extends Val
-case class Ntime(v: Val, i: Int) extends Val
+case class Ntime(l: List[Val]) extends Val
 
 // some convenience for typing in regular expressions
 def RANGE(s: String) =  CFUN(s.toSet)
 def CHAR(s: Char) = CFUN(Set(s))
-// def PLUS(r: Rexp) = SEQ(r, STAR(r))
 def charlist2rexp(s : List[Char]): Rexp = s match {
   case Nil => ONE
   case c::Nil => CHAR(c)
@@ -48,6 +42,9 @@ implicit def RexpOps(r: Rexp) = new {
   def | (s: Rexp) = ALT(r, s)
   def % = STAR(r)
   def ~ (s: Rexp) = SEQ(r, s)
+  def ^ (n: Int) = NTIMES(r, n)
+  def ? = OPTIONAL(r)
+  def ^+ = PLUS(r)
 }
 
 implicit def stringOps(s: String) = new {
@@ -57,6 +54,9 @@ implicit def stringOps(s: String) = new {
   def ~ (r: Rexp) = SEQ(s, r)
   def ~ (r: String) = SEQ(s, r)
   def $ (r: Rexp) = RECD(s, r)
+  def ^ (n: Int) = NTIMES(s, n)
+  def ? = OPTIONAL(s)
+  def ^+ = PLUS(s)
 }
 
 // the nullable function: tests whether the regular 
@@ -65,17 +65,12 @@ def nullable (r: Rexp) : Boolean = r match {
   case ZERO => false
   case ONE => true
   case ALL => false
-  // case CHAR(_) => false
   case ALT(r1, r2) => nullable(r1) || nullable(r2)
   case SEQ(r1, r2) => nullable(r1) && nullable(r2)
   case STAR(_) => true
   case NTIMES(r, i) => if (i == 0) true else nullable(r)
   case PLUS(r) => nullable(r)
   case OPTIONAL(_) => true
-  // case UPTO(_, _) => true
-  // case FROM(r, i) => if (i == 0) true else nullable(r)
-  // case BETWEEN(r, n, m) => if (n == 0 || m == 0) true else nullable(r)
-  // case NOT(r) => !nullable(r)
   case CFUN(f) => false
   case RECD(_, r1) => nullable(r1)
 }
@@ -85,7 +80,6 @@ def der(c: Char, r: Rexp) : Rexp = r match {
   case ZERO => ZERO
   case ONE => ZERO
   case ALL => ONE
-  // case CHAR(d) => if (c == d) ONE else ZERO
   case ALT(r1, r2) => ALT(der(c, r1), der(c, r2))
   case SEQ(r1, r2) => 
     if (nullable(r1)) ALT(SEQ(der(c, r1), r2), der(c, r2))
@@ -95,10 +89,6 @@ def der(c: Char, r: Rexp) : Rexp = r match {
     if (i == 0) ZERO else SEQ(der(c, r), NTIMES(r, i - 1))
   case PLUS(r1) => SEQ(der(c, r1), STAR(r1))
   case OPTIONAL(r1) => der(c, r1)
-  // case UPTO(r1, m) => if (m == 0) ZERO else SEQ(der(c, r1), UPTO(r1,m-1))
-  // case FROM(r1, n) => if (n == 0) SEQ(der(c, r1), STAR(r1)) else SEQ(der(c, r1), FROM(r1,n-1))
-  // case BETWEEN(r1, n, m) => if (n == 0) der(c,UPTO(r1,m)) else SEQ(der(c, r1),BETWEEN(r1, n-1, m-1))
-  // case NOT(r1) => NOT(der(c, r1))
   case CFUN(f) => if (f(c)) ONE else ZERO
   case RECD(_, r1) => der(c, r1)
 }
@@ -109,14 +99,13 @@ def fomat(c: String): String = {
 // extracts a string from a value
 def flatten(v: Val) : String = v match {
   case Empty => ""
-  // case Chr(c) => c.toString
   case Cf(f) => fomat(f.toString)
   case Left(v) => flatten(v)
   case Right(v) => flatten(v)
   case Sequ(v1, v2) => flatten(v1) ++ flatten(v2)
   case Stars(vs) => vs.map(flatten).mkString
   case Rec(_, v) => flatten(v)
-  case Ntime(v1, i) => flatten(v1)*i
+  case Ntime(List(v1)) => flatten(v1)
   case Pls(vs) => vs.map(flatten).mkString
   case Opt(v1) => flatten(v1)
 
@@ -126,14 +115,13 @@ def flatten(v: Val) : String = v match {
 // used for tokenising a string
 def env(v: Val) : List[(String, String)] = v match {
   case Empty => Nil
-  // case Chr(c) => Nil
   case Cf(f) => Nil
   case Left(v) => env(v)
   case Right(v) => env(v)
   case Sequ(v1, v2) => env(v1) ::: env(v2)
   case Stars(vs) => vs.flatMap(env)
   case Rec(x, v) => (x, flatten(v))::env(v)
-  case Ntime(v1, i) => env(v1)
+  case Ntime(List(v1)) => env(v1)
   case Pls(vs) => vs.flatMap(env)
   case Opt(v1) => env(v1)
 }
@@ -151,7 +139,7 @@ def mkeps(r: Rexp) : Val = r match {
   case RECD(x, r) => Rec(x, mkeps(r))
   case PLUS(r) => Sequ(mkeps(r), Stars(Nil))
   case OPTIONAL(r) => if (nullable(r)) Opt(mkeps(r)) else Empty
-  case NTIMES(r, i) => if (i == 0) Empty else Ntime(mkeps(r), i-1)
+  case NTIMES(r, i) => if (i == 0) Empty else Ntime(List.fill(i)(mkeps(r)))
 }
 
 def inj(r: Rexp, c: Char, v: Val) : Val = (r, v) match {
@@ -166,8 +154,8 @@ def inj(r: Rexp, c: Char, v: Val) : Val = (r, v) match {
   case (RECD(x, r1), _) => Rec(x, inj(r1, c, v))
   case (OPTIONAL(r1), Opt(v1)) => Opt(inj(r1, c, v1))
   case (OPTIONAL(r1), Empty) => Opt(inj(r1, c, v))
-  case (NTIMES(r1, i), Sequ(v1, Empty)) => Ntime(inj(r1, c, v1), i)
-  case (NTIMES(r1, i), Sequ(v1, Ntime(v2, i2))) => Ntime(inj(r1, c, v1), i)
+  case (NTIMES(r1, i), Sequ(v1, Empty)) => Ntime(List(inj(r1, c, v1)))
+  case (NTIMES(r1, i), Sequ(v1, Ntime(v2))) => Ntime(List(inj(r1, c, v1)) ++ v2)
   case (CFUN(f), Empty) => Cf(Set(c))
 }
 
@@ -231,28 +219,16 @@ def lexing_simp(r: Rexp, s: String) =
 
 // The Lexing Rules for the WHILE Language
 
-// def PLUS(r: Rexp) = r ~ r.%
-
-// def Range(s : List[Char]) : Rexp = s match {
-//   case Nil => ZERO
-//   case c::Nil => CHAR(c)
-//   case c::s => ALT(CHAR(c), Range(s))
-// }
-
 val LET = RANGE("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 val SYM = RANGE("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_.<>=;,\\:")
 val DIGIT = RANGE("0123456789")
 val ID = LET ~ ("_" | LET | DIGIT).% 
-// val NUM = PLUS(DIGIT)
 val KEYWORD : Rexp = "skip" | "while" | "do" | "if" | "then" | "else" | "read" | "write" | "for" | "to" | "true" | "false" 
 val SEMI: Rexp = ";"
 val OP: Rexp = ":=" | "-" | "+" | "*" | "!=" | "<" | ">" | "%" | "==" | "!=" | "<=" | ">=" | "&&" | "||" | "/"//"=" not allowed
 val WHITESPACE = PLUS(" " | "\n" | "\t" | "\r")
-// val RPAREN: Rexp = "{"
-// val LPAREN: Rexp = "}"
-// val STRING: Rexp = "\"" ~ SYM.% ~ "\""
 val STRINGS: Rexp = "\"" ~ (SYM | DIGIT | WHITESPACE).% ~ "\""
-val PARA: Rexp = "{" | "}" | "(" | ")"//may change
+val PARA: Rexp = "{" | "}" | "(" | ")"
 
 val NUM: Rexp =  DIGIT | (RANGE("123456789") ~ DIGIT.% )
 val COMMENT: Rexp = "//" ~ (DIGIT | SYM | " ").% ~ ("\n" | "\t" | "\r")
@@ -272,13 +248,23 @@ val WHILE_REGS = (("k" $ KEYWORD) |
 @main
 def q2() = {
 
-  val a = NTIMES(CHAR('a'), 3)
+  val a = "a"^3
+  //NTIMES(CHAR('a'), 3)
   println(s"test: $a")
-  println(lexing_simp(a, "aaa"))
+  println(lex_simp(a, "aaa".toList))
 
-  val b = NTIMES(OPTIONAL(CHAR('a')),3)
+  val b = ("a".?)^3
+  //NTIMES(OPTIONAL(CHAR('a')),3)
   println(s"test: $b")
-  println(lexing_simp(b, "aa"))
+  println(lex_simp(b, "aa".toList))
+  val c = ("a" | ONE)^3
+  // NTIMES(ALT(CHAR('a'),ONE) ,3)
+  println(s"test: $c")
+  println(lex_simp(c, "aa".toList))
+
+  val d = ("a".?).^+
+  println(s"test: $d")
+  println(lex_simp(d, "aa".toList))
 }
 
 

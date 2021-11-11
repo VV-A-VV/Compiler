@@ -21,6 +21,7 @@ case class T_OP(s: String) extends Token
 case class T_NUM(n: Int) extends Token
 case class T_KWD(s: String) extends Token
 case class T_STR(s: String) extends Token
+case class T_COM(s: String) extends Token
 
 val token : PartialFunction[(String, String), Token] = {
   case ("s", _) => T_SEMI
@@ -30,6 +31,7 @@ val token : PartialFunction[(String, String), Token] = {
   case ("n", s) => T_NUM(s.toInt)
   case ("k", s) => T_KWD(s)
   case ("str", s) => T_STR(s)
+  case ("c", s) => T_COM(s)
 }
 
 // by using collect we filter out all unwanted tokens

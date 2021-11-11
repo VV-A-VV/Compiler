@@ -235,7 +235,18 @@ def small() = {
   println(s"test: $prog1")
   println(lexing_simp(WHILE_REGS, prog1))
 }
+@arg(doc = "q2")
+@main
+def q2() = {
 
+  // val a = NTIMES(CHAR('a'), 3)
+  // println(s"test: $a")
+  // println(lexing_simp(a, "aaa"))
+
+  val b = ALT(CHAR('a'),ONE)
+  println(s"test: $b")
+  println(lexing_simp(b, "a"))
+}
 // Bigger Tests
 //==============
 
